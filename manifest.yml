@@ -1,22 +1,31 @@
-version: '3.0'
+version: "3.0"
 description: Test manifest
 repository: https://github.com/
 hydraVersion: "4"
 
 typegen:
   metadata:
-    source: wss://kusama-rpc.polkadot.io/
+    source: indexer/types.json
   events:
-    - balances.Transfer
+    # - assets.Transfer
   calls:
     - timestamp.set
   outDir: chain
+  # customTypes:
+  #   typedefsLoc:
 
 mappings:
   mappingsModule: mappings
   eventHandlers:
-    - event: balances.Transfer
-      handler: balancesTransfer
+  #   - event: assets.transfer
+  #     handler: transfersHandler
+  # extrinsicHandlers:
+  # preBlockHooks:
+  # postBlockHooks:
+
   extrinsicHandlers:
-  preBlockHooks:
-  postBlockHooks:
+    - extrinsic: assets.transfer
+      handler: transfersHandler
+      # triggerEvents: # optional list of events triggering the execution
+      #   - system.ExtrinsicSuccess
+      #   - system.ExtrinsicFailure
