@@ -1,14 +1,27 @@
-type Account @entity {
-  "Account address"
-  id: ID!
-  wallet: String!
-  balance: BigInt!
-  historicalBalances: [HistoricalBalance!] @derivedFrom(field: "account")
+type HistoryElement @entity {
+	id: String!
+	blockHeight: BigInt!
+	blockHash: String!
+	module: String!
+	method: String!
+	address: String!
+	networkFee: String!
+	execution: ExecutionResult!
+	timestamp: Int!
+	data: HistoryElementDetails
 }
 
-type HistoricalBalance @entity {
-  id: ID!
-  account: Account!
-  balance: BigInt!
-  timestamp: BigInt!
+type ExecutionResult @jsonField {
+	success: Boolean!
+	error: Error
+}
+
+type Error @jsonField {
+	moduleErrorId: Int
+	moduleErrorIndex: Int
+	nonModuleErrorMessage: String
+}
+
+type HistoryElementDetails @jsonField {
+	data: String # API is implemented by bypassing the scheme - `data` in all mappings is an object, not a String. See https://github.com/subquery/subql/issues/522.
 }
