@@ -28,15 +28,6 @@ export async function transfersHandler({
 
 	if (record.execution.success) {
 		let blockEvents = await allBlockEvents(block.height);
-		// let transferEvent = blockEvents.find((e) => {
-		// 	return e.method === "Transfer" && e.section === "assets";
-		// });
-		// const {
-		// 	params: {
-		// 		data: [, to, assetId, amount],
-		// 	},
-		// } = transferEvent;
-
 		for (const eventRecord of blockEvents) {
 			if (
 				eventRecord.method === "Transfer" &&
