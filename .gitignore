@@ -4,3 +4,4 @@ db
 /chain
 /server-extension
 .dockerignore
+/.github
