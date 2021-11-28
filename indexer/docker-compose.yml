@@ -23,7 +23,7 @@ services:
       - REDIS_URI=redis://redis:6379/0
       - FORCE_HEIGHT=true
       - BLOCK_HEIGHT=0 # starting block height
-      - WS_PROVIDER_ENDPOINT_URI=wss://mof2.sora.org
+      - WS_PROVIDER_ENDPOINT_URI=wss://ws.framenode-3.s3.dev.sora2.soramitsu.co.jp
       #- BUNDLE_TYPES=typesBundle.json
       - TYPES_JSON=types.json
     depends_on:
