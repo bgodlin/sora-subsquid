@@ -3,7 +3,7 @@ import axios, { AxiosRequestConfig } from "axios";
 import { ApiPromise } from "@polkadot/api";
 // import { convertAddressToSubstrate } from "./common";
 
-export const INDEXER = "https://kusama.indexer.gc.subsquid.io/v4/graphql";
+export const INDEXER = "http://localhost:4010/v1/graphql";
 export const API_RETRIES = 5;
 
 // axiosRetry(axios, {
@@ -153,4 +153,36 @@ export const allBlockExtrinsics = async (
 	return await axiosPOSTRequest(data).then(
 		(result: any) => result?.data?.substrate_extrinsic
 	);
+};
+
+/**
+ * API to fetch all block events
+ * @param {string} extrinsicHash
+ * @returns {Array<allBlockEvents>}
+ */
+export const allExtrinsicEvents = async (extrinsicHash: string) => {
+	// please be cautions when modifying query, extra spaces line endings could cause query not to work
+	const query = `query MyQuery {
+  substrate_event (where:{extrinsicHash:{_eq: "${extrinsicHash}"}}){
+    section
+    method
+    id
+    data
+    blockHash
+    params
+    name
+    indexInBlock
+    blockNumber
+    blockTimestamp
+  }
+}`;
+	let data = JSON.stringify({
+		query,
+		variables: {},
+	});
+
+	return await axiosPOSTRequest(data).then((result: any) => {
+		const response: Array<allBlockEvents> = result?.data?.substrate_event;
+		return response;
+	});
 };
