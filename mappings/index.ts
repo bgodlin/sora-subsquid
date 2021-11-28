@@ -1,65 +1,77 @@
-import BN from 'bn.js'
-import { DatabaseManager, EventContext, StoreContext } from '@subsquid/hydra-common'
-import { Account, HistoricalBalance } from '../generated/model'
-import { Balances } from '../chain'
+import BN from "bn.js";
+import {
+	DatabaseManager,
+	EventContext,
+	StoreContext,
+	ExtrinsicContext,
+} from "@subsquid/hydra-common";
+import { HistoryElement } from "../generated/model";
+import { Balances } from "../chain";
+import {
+	formatU128ToBalance,
+	assignCommonHistoryElemInfo,
+} from "./utils/common";
+import { Logger } from "../generated/server/logger";
+import { allBlockEvents } from "./utils/api";
 
+export async function transfersHandler({
+	store,
+	event,
+	block,
+	extrinsic,
+}: ExtrinsicContext & StoreContext): Promise<void> {
+	Logger.log("Caught transfer extrinsic");
 
-export async function balancesTransfer({
-  store,
-  event,
-  block,
-  extrinsic,
-}: EventContext & StoreContext): Promise<void> {
+	const record = await assignCommonHistoryElemInfo(extrinsic, block);
 
-  const [from, to, value] = new Balances.TransferEvent(event).params
-  const tip = extrinsic ? new BN(extrinsic.tip.toString(10)) : new BN(0)
+	let details = new Object();
 
-  const fromAcc = await getOrCreate(store, Account, from.toHex())
-  fromAcc.wallet = from.toHuman()
-  fromAcc.balance = fromAcc.balance || new BN(0)
-  fromAcc.balance = fromAcc.balance.sub(value)
-  fromAcc.balance = fromAcc.balance.sub(tip)
-  await store.save(fromAcc)
+	if (record.execution.success) {
+		let blockEvents = await allBlockEvents(block.height);
+		// let transferEvent = blockEvents.find((e) => {
+		// 	return e.method === "Transfer" && e.section === "assets";
+		// });
+		// const {
+		// 	params: {
+		// 		data: [, to, assetId, amount],
+		// 	},
+		// } = transferEvent;
 
-  const toAcc = await getOrCreate(store, Account, to.toHex())
-  toAcc.wallet = to.toHuman()
-  toAcc.balance = toAcc.balance || new BN(0)
-  toAcc.balance = toAcc.balance.add(value)
-  await store.save(toAcc)
+		for (const eventRecord of blockEvents) {
+			if (
+				eventRecord.method === "Transfer" &&
+				eventRecord.section === "assets"
+			) {
+				const {
+					params: [from, to, assetId, amount],
+				} = eventRecord;
 
-  const hbFrom = new HistoricalBalance()
-  hbFrom.account = fromAcc;
-  hbFrom.balance = fromAcc.balance;
-  hbFrom.timestamp = new BN(block.timestamp)
-  await store.save(hbFrom)
+				details = {
+					from: extrinsic.signer.toString(),
+					to: to.toString(),
+					amount: formatU128ToBalance(amount.toString()),
+					assetId: assetId.toString(),
+				};
+			}
+		}
+	} else {
+		const {
+			args: [assetId, to, amount],
+		} = extrinsic;
 
-  const hbTo = new HistoricalBalance()
-  hbTo.account = toAcc;
-  hbTo.balance = toAcc.balance;
-  hbTo.timestamp = new BN(block.timestamp)
-  await store.save(hbTo)
-}
+		details = {
+			from: extrinsic.signer.toString(),
+			to: to.toString(),
+			amount: formatU128ToBalance(amount.toString()),
+			assetId: assetId.toString(),
+		};
+	}
 
+	record.data = details;
 
-async function getOrCreate<T extends {id: string}>(
-  store: DatabaseManager,
-  entityConstructor: EntityConstructor<T>,
-  id: string
-): Promise<T> {
+	await store.save(record);
 
-  let e = await store.get(entityConstructor, {
-    where: { id },
-  })
-
-  if (e == null) {
-    e = new entityConstructor()
-    e.id = id
-  }
-
-  return e
-}
-
-
-type EntityConstructor<T> = {
-  new (...args: any[]): T
+	Logger.log(
+		`===== Saved transfer with ${extrinsic.hash?.toString()} txid =====`
+	);
 }
